@@ -1,0 +1,14 @@
+# Virtual environment
+venv/
+py312/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
