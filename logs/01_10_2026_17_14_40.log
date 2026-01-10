@@ -1,0 +1,46 @@
+[2026-01-10 17:14:40] 171 root - INFO - MODEL TRAINING PIPELINE STARTED
+[2026-01-10 17:14:40] 44 root - INFO - Entered the data ingestion method or component
+[2026-01-10 17:14:40] 49 root - INFO - Read the dataset as dataframe with shape: (1000, 8)
+[2026-01-10 17:14:40] 56 root - INFO - Raw dataset saved to: artifacts\data.csv
+[2026-01-10 17:14:40] 59 root - INFO - Train test split initiated
+[2026-01-10 17:14:40] 68 root - INFO - Data ingestion completed successfully
+[2026-01-10 17:14:40] 69 root - INFO - Train dataset shape: (800, 8), saved to: artifacts\train.csv
+[2026-01-10 17:14:40] 70 root - INFO - Test dataset shape: (200, 8), saved to: artifacts\test.csv
+[2026-01-10 17:14:40] 108 root - INFO - Read train and test data completed
+[2026-01-10 17:14:40] 109 root - INFO - Train shape: (800, 8), Test shape: (200, 8)
+[2026-01-10 17:14:40] 111 root - INFO - Obtaining preprocessing object
+[2026-01-10 17:14:40] 54 root - INFO - Categorical columns: ['gender', 'race_ethnicity', 'parental_level_of_education', 'lunch', 'test_preparation_course']
+[2026-01-10 17:14:40] 55 root - INFO - Numerical columns: ['writing_score', 'reading_score']
+[2026-01-10 17:14:40] 124 root - INFO - Applying preprocessing object on training and testing dataframes
+[2026-01-10 17:14:40] 130 root - INFO - Train features shape: (800, 19)
+[2026-01-10 17:14:40] 131 root - INFO - Test features shape: (200, 19)
+[2026-01-10 17:14:40] 138 root - INFO - Saving preprocessing object at: artifacts\preprocessor.pkl
+[2026-01-10 17:14:40] 33 root - INFO - Saving object to: artifacts\preprocessor.pkl
+[2026-01-10 17:14:40] 39 root - INFO - Object saved successfully: artifacts\preprocessor.pkl
+[2026-01-10 17:14:40] 64 root - INFO - Model training started
+[2026-01-10 17:14:40] 74 root - INFO - Training data shape: X=(800, 19), y=(800,)
+[2026-01-10 17:14:40] 75 root - INFO - Test data shape: X=(200, 19), y=(200,)
+[2026-01-10 17:14:40] 118 root - INFO - Initiating model evaluation and hyperparameter tuning
+[2026-01-10 17:14:40] 79 root - INFO - Evaluating 7 models...
+[2026-01-10 17:14:40] 84 root - INFO - Training Random Forest...
+[2026-01-10 17:14:40] 88 root - INFO - Hyperparameter tuning for Random Forest: 1 params
+[2026-01-10 17:14:49] 95 root - INFO - Best params for Random Forest: {'n_estimators': 256}
+[2026-01-10 17:14:51] 108 root - INFO - Random Forest \u2192 Test R²: 0.8518
+[2026-01-10 17:14:51] 84 root - INFO - Training Decision Tree...
+[2026-01-10 17:14:51] 88 root - INFO - Hyperparameter tuning for Decision Tree: 1 params
+[2026-01-10 17:14:51] 95 root - INFO - Best params for Decision Tree: {'criterion': 'poisson'}
+[2026-01-10 17:14:51] 108 root - INFO - Decision Tree \u2192 Test R²: 0.7277
+[2026-01-10 17:14:51] 84 root - INFO - Training Gradient Boosting...
+[2026-01-10 17:14:51] 88 root - INFO - Hyperparameter tuning for Gradient Boosting: 3 params
+[2026-01-10 17:14:57] 95 root - INFO - Best params for Gradient Boosting: {'learning_rate': 0.05, 'n_estimators': 128, 'subsample': 0.75}
+[2026-01-10 17:14:57] 108 root - INFO - Gradient Boosting \u2192 Test R²: 0.8749
+[2026-01-10 17:14:57] 84 root - INFO - Training Linear Regression...
+[2026-01-10 17:14:57] 98 root - INFO - No hyperparameter tuning for Linear Regression
+[2026-01-10 17:14:57] 108 root - INFO - Linear Regression \u2192 Test R²: 0.8804
+[2026-01-10 17:14:57] 84 root - INFO - Training XGBRegressor...
+[2026-01-10 17:14:57] 88 root - INFO - Hyperparameter tuning for XGBRegressor: 2 params
+[2026-01-10 17:14:58] 95 root - INFO - Best params for XGBRegressor: {'learning_rate': 0.05, 'n_estimators': 64}
+[2026-01-10 17:14:58] 108 root - INFO - XGBRegressor \u2192 Test R²: 0.8492
+[2026-01-10 17:14:58] 84 root - INFO - Training CatBoosting Regressor...
+[2026-01-10 17:14:58] 88 root - INFO - Hyperparameter tuning for CatBoosting Regressor: 3 params
+[2026-01-10 17:14:58] 120 root - ERROR - Model evaluation failed: The following error was raised: 'CatBoostRegressor' object has no attribute '__sklearn_tags__'. It seems that there are no classes that implement `__sklearn_tags__` in the MRO and/or all classes in the MRO call `super().__sklearn_tags__()`. Make sure to inherit from `BaseEstimator` which implements `__sklearn_tags__` (or alternatively define `__sklearn_tags__` but we don't recommend this approach). Note that `BaseEstimator` needs to be on the right side of other Mixins in the inheritance order.

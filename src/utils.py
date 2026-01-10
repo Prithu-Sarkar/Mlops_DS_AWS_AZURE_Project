@@ -1,131 +1,165 @@
-import os  # Directory creation and path manipulation
-import sys  # System utilities for exception handling
-import numpy as np  # Array operations (unused but imported for consistency)
-import pandas as pd  # Dataframe operations (unused but imported for consistency)
-import pickle  # Python object serialization (standard library)
+import os  # Directory creation and path management
+import sys  # Exception traceback utilities
+import pickle  # Standard Python object serialization
+import numpy as np  # Numerical arrays (type hints)
+from typing import Dict  # Type hints for model evaluation return
 
-# ML evaluation utilities
+# ML evaluation and optimization
 from sklearn.metrics import r2_score  # R² regression metric
-from sklearn.model_selection import GridSearchCV  # Hyperparameter optimization
+from sklearn.model_selection import GridSearchCV  # Hyperparameter search
 
-# Project components
-from src.exception import CustomException  # Custom exception with location tracking
+# Project infrastructure
+from src.exception import CustomException  # Enhanced exception handling
+from src.logger import logging  # Centralized logging to timestamped files
 
 
 def save_object(file_path: str, obj: object) -> None:
     """
-    Serializes Python objects (models, preprocessors) to disk using pickle.
+    Production-ready object serialization for ML artifacts.
     
-    Creates parent directories automatically. Handles ML pipeline artifacts.
+    Auto-creates directories. Used for models, preprocessors, scalers.
     
     Args:
-        file_path (str): Destination path (e.g., 'artifacts/model.pkl')
-        obj (object): Model, preprocessor, or any picklable object
+        file_path (str): Target path e.g., 'artifacts/model.pkl'
+        obj (object): Picklable Python object (sklearn model, ColumnTransformer, etc.)
+    
+    Example:
+        save_object('artifacts/preprocessor.pkl', preprocessing_obj)
     """
     try:
-        # Ensure parent directories exist (artifacts/, models/, etc.)
+        # Ensure artifacts directory structure exists
         dir_path = os.path.dirname(file_path)
         os.makedirs(dir_path, exist_ok=True)
+        logging.info(f"Saving object to: {file_path}")
         
-        # Serialize with protocol 4 (Python 3.4+ optimized)
+        # High-performance pickle protocol (Python 3.8+ optimized)
         with open(file_path, "wb") as file_obj:
-            pickle.dump(obj, file_obj)
+            pickle.dump(obj, file_obj, protocol=pickle.HIGHEST_PROTOCOL)
             
+        logging.info(f"Object saved successfully: {file_path}")
+        
     except Exception as e:
+        logging.error(f"Failed to save object {file_path}: {str(e)}")
         raise CustomException(e, sys.exc_info())
 
 
 def evaluate_models(
-    X_train: np.ndarray, 
-    y_train: np.ndarray, 
+    X_train: np.ndarray,
+    y_train: np.ndarray,
     X_test: np.ndarray, 
-    y_test: np.ndarray, 
-    models: dict, 
-    param: dict
-) -> dict[str, float]:
+    y_test: np.ndarray,
+    models: Dict[str, object],
+    param: Dict[str, dict]
+) -> Dict[str, float]:
     """
-    Automated model evaluation + hyperparameter tuning across multiple algorithms.
+    Automated model comparison with optional hyperparameter tuning.
     
-    For each model:
-    1. GridSearchCV finds best hyperparameters (3-fold CV on train)
-    2. Retrains with best params on full train set
-    3. Evaluates R² on test set (no overfitting bias)
+    Workflow per model:
+    1. GridSearchCV (if params provided) → best hyperparameters
+    2. Retrain on full training data
+    3. Test R² evaluation (leakage-free)
     
     Args:
-        X_train, y_train: Training features/target
-        X_test, y_test: Test features/target  
-        models (dict): {'ModelName': model_instance, ...}
-        param (dict): {'ModelName': {hyperparam_grid}, ...}
+        X_train/y_train: Training features/target arrays
+        X_test/y_test: Holdout test features/target  
+        models: Dict of {'ModelName': sklearn_model_instance}
+        param: Dict of {'ModelName': hyperparameter_grid}
         
     Returns:
-        dict: {'ModelName': test_r2_score, ...}
+        Dict[str, float]: {'ModelName': test_r2_score}
+        
+    Example:
+        models = {'RF': RandomForestRegressor()}
+        params = {'RF': {'n_estimators': [100, 200]}}
+        report = evaluate_models(X_train, y_train, X_test, y_test, models, params)
     """
     try:
-        report = {}
+        report: Dict[str, float] = {}
         
-        # Iterate through model zoo
-        for model_name in models.keys():
-            model = models[model_name]
-            para = param.get(model_name, {})  # Handle models without params
+        logging.info(f"Evaluating {len(models)} models...")
+        
+        for model_name, model in models.items():
+            para = param.get(model_name, {})
             
-            logging.info(f"Training {model_name} with GridSearchCV...")
+            logging.info(f"Training {model_name}...")
             
-            # Hyperparameter optimization (3-fold CV prevents overfitting)
-            gs = GridSearchCV(model, para, cv=3, scoring='r2', n_jobs=-1)
-            gs.fit(X_train, y_train)
+            # Hyperparameter optimization (only if params provided)
+            if para:
+                logging.info(f"Hyperparameter tuning for {model_name}: {len(para)} params")
+                gs = GridSearchCV(
+                    model, para, cv=3, scoring="r2", 
+                    n_jobs=-1, verbose=0  # Parallel + silent
+                )
+                gs.fit(X_train, y_train)
+                best_params = gs.best_params_
+                logging.info(f"Best params for {model_name}: {best_params}")
+                model.set_params(**best_params)
+            else:
+                logging.info(f"No hyperparameter tuning for {model_name}")
             
-            # Use best hyperparameters
-            model.set_params(**gs.best_params_)
+            # Train final model
             model.fit(X_train, y_train)
             
-            # Predictions
-            y_train_pred = model.predict(X_train)
+            # Leakage-free test evaluation
             y_test_pred = model.predict(X_test)
-            
-            # R² scores (test score = key metric)
-            train_r2 = r2_score(y_train, y_train_pred)
             test_r2 = r2_score(y_test, y_test_pred)
             
-            # Log performance
-            logging.info(f"{model_name} → Train R²: {train_r2:.4f}, Test R²: {test_r2:.4f}")
+            # Comprehensive logging
+            logging.info(f"{model_name} → Test R²: {test_r2:.4f}")
             
-            # Report test score only (production metric)
             report[model_name] = test_r2
-            
-        logging.info(f"Model evaluation complete. Best test R²: {max(report.values()):.4f}")
+        
+        # Summary
+        best_model = max(report, key=report.get)
+        best_score = report[best_model]
+        logging.info(f"Model evaluation complete. Best: {best_model} (R²={best_score:.4f})")
+        
         return report
         
     except Exception as e:
+        logging.error(f"Model evaluation failed: {str(e)}")
         raise CustomException(e, sys.exc_info())
 
 
 def load_object(file_path: str) -> object:
     """
-    Deserializes pickled ML artifacts (models, preprocessors) for inference.
+    Deserialize ML artifacts for inference/prediction serving.
     
     Args:
-        file_path (str): Path to pickled file (e.g., 'artifacts/model.pkl')
+        file_path (str): Path to pickled artifact
         
     Returns:
-        object: Loaded model/preprocessor instance
+        object: Loaded sklearn model or preprocessor
+        
+    Example:
+        model = load_object('artifacts/model.pkl')
+        preprocessor = load_object('artifacts/preprocessor.pkl')
+        predictions = model.predict(preprocessor.transform(new_data))
     """
     try:
+        logging.info(f"Loading object from: {file_path}")
         with open(file_path, "rb") as file_obj:
-            return pickle.load(file_obj)
-            
+            obj = pickle.load(file_obj)
+        logging.info(f"Object loaded successfully: {file_path}")
+        return obj
+        
     except Exception as e:
+        logging.error(f"Failed to load object {file_path}: {str(e)}")
         raise CustomException(e, sys.exc_info())
 
 
-# Usage Examples:
+# Production Pipeline Integration Example:
 """
-# Save trained model
+# 1. Training phase
 save_object('artifacts/model.pkl', best_model)
+save_object('artifacts/preprocessor.pkl', preprocessor)
 
-# Evaluate 7 models automatically  
-model_report = evaluate_models(X_train, y_train, X_test, y_test, models, params)
+# 2. Evaluation phase  
+models = {'RF': RandomForestRegressor(), 'XGB': XGBRegressor()}
+report = evaluate_models(X_train, y_train, X_test, y_test, models, params)
 
-# Load for prediction
+# 3. Inference phase (model serving)
 model = load_object('artifacts/model.pkl')
-predictions = model.predict(new_data)
+preprocessor = load_object('artifacts/preprocessor.pkl')
+new_predictions = model.predict(preprocessor.transform(new_customer_data))
 """
