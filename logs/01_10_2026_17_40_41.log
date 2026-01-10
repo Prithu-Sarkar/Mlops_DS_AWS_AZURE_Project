@@ -1,0 +1,8 @@
+[2026-01-10 17:40:43] 71 root - INFO - Prediction pipeline test started.
+[2026-01-10 17:40:43] 18 root - INFO - Loading model and preprocessor...
+[2026-01-10 17:40:43] 140 root - INFO - Loading object from: artifacts\model.pkl
+[2026-01-10 17:40:43] 143 root - INFO - Object loaded successfully: artifacts\model.pkl
+[2026-01-10 17:40:43] 140 root - INFO - Loading object from: artifacts\preprocessor.pkl
+[2026-01-10 17:40:43] 143 root - INFO - Object loaded successfully: artifacts\preprocessor.pkl
+[2026-01-10 17:40:43] 21 root - INFO - Artifacts loaded successfully.
+[2026-01-10 17:40:43] 91 root - INFO - Predicted math_score: 66.07805281781317
